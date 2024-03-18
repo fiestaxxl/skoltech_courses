@@ -1,0 +1,53 @@
+boundary p p p
+units real
+atom_style atomic
+
+
+lattice fcc 5.26
+region box block 0 1 0 1 0 1 units lattice
+create_box 1 box
+create_atoms 1 box
+replicate 10 10 10
+
+pair_style lj/cut 8.5
+pair_coeff * * 0.238 3.405
+mass * 39.948
+neigh_modify delay 10 check yes
+velocity all create 120.0 3213112 mom yes rot yes dist gaussian
+#40,85,120 for solid,liquid and gas respectively
+
+
+variable name index lesson4
+shell mkdir ${name}.out
+shell cd ${name}.out
+
+thermo_style custom step temp press ke pe etotal density
+thermo 100
+
+#energy minimization:
+minimize 0.0 0.0 1000 10000
+#fix 1 box/relax iso 100.0 100.0 1000 vmax 0.1
+#unfix 1
+
+#temp: 40,85,120 for solid,liquid and gas respectively
+#p: 100,1,1 for solid,liquid and gas respectively
+fix 1 all npt temp 120.0 120.0 100 iso 1 1 1000
+run 10000
+unfix 1
+
+reset_timestep 0
+#md:
+compute 1 all vacf
+compute 2 all msd com yes
+#temp: 40,85,120 for solid,liquid and gas respectively
+#p: 100,1,1 for solid,liquid and gas respectively
+fix 1 all npt temp 120.0 120.0 100 iso 1 1 1000
+fix 2 all print 10 "$(step) $(c_1[1]) $(c_1[4])" file vacf_g.txt title "s vacf_x VACF" screen no
+fix 3 all print 100 "$(step) $(c_2[4])" file MSD_arg.txt
+
+
+#dump 1 all custom 1 dump_ar.*.txt mol type x y z xu yu zu vx vy vz
+#dump_modify 1 sort id
+#dump 2 all dcd 100 ${name}.dcd
+#dump_modify 2 unwrap yes
+run 8000
